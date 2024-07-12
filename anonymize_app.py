@@ -1,6 +1,6 @@
 from typing import List
+import pandas as pd
 import streamlit as st
-from DataProcessor import DataProcessor
 from patient_data_loader import load_patients_from_csv
 from Patient import Patient
 
@@ -17,35 +17,29 @@ def main():
             st.error("Failed to load data from CSV file.")
             return
         
-        st.subheader("Patients:")
-        for patient in patients:
-            st.write(patient)
-        
-        # processor = DataProcessor()
-        # data = processor.load_data(uploaded_file)
-        
-        # if data is None:
-        #     st.error("Failed to load data from CSV file.")
-        #     return
-        
-        # if data is not None:
-        #     st.subheader("Data Preview:")
-        #     st.write(data.head())
+        if patients is not None and len(patients) > 0:
+            df = pd.DataFrame(patients)
+            st.subheader("Data Preview:")
+            st.write(df.head())
             
-        #     if st.button("Anonymize All"):
-        #         anonymized_data = processor.anonymize_data()
+            if st.button("Anonymize All"):
+                anonymized_data = []
+                for patient in patients:
+                    anonymized_data.append(patient.anonymize())
+
+                anonymized_data = pd.DataFrame(anonymized_data)
                 
-        #         st.subheader("Anonymized Data Preview:")
-        #         st.write(anonymized_data.head())
+                st.subheader("Anonymized Data Preview:")
+                st.write(anonymized_data.head())
                 
-        #         csv = processor.save_anonymized_data()
-        #         if csv:
-        #             st.download_button(
-        #                 label="Download Anonymized Data",
-        #                 data=csv,
-        #                 file_name='anonymized_data.csv',
-        #                 mime='text/csv',
-        #             )
+                csv = anonymized_data.to_csv(index=False)
+                if csv:
+                    st.download_button(
+                        label="Download Anonymized Data",
+                        data=csv,
+                        file_name='anonymized_data.csv',
+                        mime='text/csv',
+                    )
 
 # Exécuter l'application principale
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 from typing import List, Optional, Union
 from datetime import date
+import random
+            
 
 class Patient:
     def __init__(self, 
@@ -146,5 +148,120 @@ class Patient:
         self.dcd = dcd
         self.cause_deces = cause_deces
 
+
+    
+
+    def anonymize(self):
+        def top_bottom_coding(value, lower_bound, upper_bound):
+            """
+            Apply top/bottom coding to a value, ensuring it falls within the specified bounds.
+            
+            Parameters:
+            - value: The value to be coded. It can be of any type that supports comparison.
+            - lower_bound: The lower bound for the value.
+            - upper_bound: The upper bound for the value.
+            
+            Returns:
+            - The value after applying top/bottom coding.
+            """
+
+            if value is None:
+                return value
+            try:
+                if isinstance(value, str):
+                    # Attempt to convert to float if value is a string
+                    value = float(value.replace(',', '.'))  # handle comma as decimal separator
+                
+                # Ensure lower_bound and upper_bound are comparable to value
+                lower_bound = float(lower_bound)
+                upper_bound = float(upper_bound)
+                
+                # Apply top/bottom coding
+                coded_value = max(lower_bound, min(value, upper_bound))
+                return coded_value
+            except (ValueError, TypeError) as e:
+                # Handle cases where conversion to float or comparison fails
+                print(f"Error in top_bottom_coding: {e}")
+                return None
+        
+        def rank_swapping(value):
+            if value is None:
+                return value
+            if(isinstance(value, float)):
+                value = int(value)
+            value += 1
+            return value
+        
+        def post_randomisation(value, noise_level=0.05):
+            """
+            Apply post-randomisation by adding small random noise to a value.
+            
+            Parameters:
+            - value: The value to be anonymized. Expected to be a numeric type (int or float).
+            - noise_level: The maximum percentage of noise to add or subtract from the value (0 to 1).
+            
+            Returns:
+            - The anonymized value after adding random noise.
+            """
+
+            if value is None:
+                return value
+            try:
+                # Ensure value is a float
+                value = float(value)
+                
+                # Ensure noise_level is between 0 and 1
+                if not 0 <= noise_level <= 1:
+                    raise ValueError("Noise level must be between 0 and 1")
+                
+                # Calculate the noise as a percentage of the value
+                noise = value * random.uniform(-noise_level, noise_level)
+                anonymized_value = value + noise
+                
+                return anonymized_value
+            except (ValueError, TypeError) as e:
+                # Handle cases where the value cannot be converted to float or is not numeric
+                print(f"Error in post_randomisation: {e}")
+                return value
+        
+        def t_closeness(value):
+            return value
+
+        # Dictionary of attribute names to their anonymization techniques
+        anonymization_techniques = {
+            'age_dg_cmh': ('top_bottom_coding', 0, 100),
+            'date_syncopes': 't_closeness',
+            'date_baseline': 't_closeness',
+            'age_baseline': ('top_bottom_coding', 0, 100),
+            'bmi': 'rank_swapping',
+            'bsa': ('post_randomisation', 0.05),
+            'epaisseur_paroi_vg': ('top_bottom_coding', 5, 25),
+            'fraction_ejection_vg': ('post_randomisation', 0.05),
+            'diametre_oreillette_gauche': ('top_bottom_coding', 10, 50),
+            'volume_oreillette_gauche': ('post_randomisation', 0.05),
+            'gradient_intravg_repos': ('post_randomisation', 0.05),
+            'gradient_intravg_vasalva': ('post_randomisation', 0.05),
+            'valeur_nt_pro_bnp': ('top_bottom_coding', 0, 10000),
+            'date_1ere_hospit_ic_post_baseline': 't_closeness',
+            'date_1er_fv_post_baseline': 't_closeness',
+            'date_1er_tvs_post_baseline': 't_closeness',
+            'date_1er_fa_post_baseline': 't_closeness',
+            'date_1er_flutter_post_baseline': 't_closeness',
+            'date_avc_ait_post_baseline': 't_closeness'
+        }
+        
+        anonymized_data = {}
+        for attr, technique in anonymization_techniques.items():
+            if isinstance(technique, str):
+                method = locals()[technique]
+                anonymized_data[attr] = method(getattr(self, attr))
+            elif isinstance(technique, tuple):
+                method_name, *params = technique
+                method = locals()[method_name]
+                anonymized_data[attr] = method(getattr(self, attr), *params)
+
+        return anonymized_data
+
     def __repr__(self):
         return f"Patient({self.patient_id}, {self.sexe}, {self.age_baseline})"
+    
